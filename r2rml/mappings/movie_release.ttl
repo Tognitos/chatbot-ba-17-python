@@ -1,0 +1,36 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+@prefix ns:   <http://example.com/ns#>
+
+map:Movie_release
+
+    # t.kind_id 1 = Movie
+    # info_type_id 16 = release dates (+location)
+    
+	rr:logicalTable [ rr:sqlQuery """
+        SELECT DISTINCT mi.movie_id as MOV_ID,
+                        REPLACE(SUBSTRING_INDEX(mi.info, ':', 1), ' ', '_') as MOV_RELEASE_LOC,
+	                    RIGHT(mi.info,4) as MOV_REL_DATE
+        FROM movie_info mi
+	    LEFT JOIN title t ON mi.movie_id = t.id
+        WHERE (t.kind_id=1) AND
+	          (mi.info_type_id=16);
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOV_ID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate ns:release;
+		rr:objectMap [
+		    rr:template "http://data.example.com/release/{MOV_RELEASE_LOC}_{MOV_REL_DATE}"
+		    ];
+	].

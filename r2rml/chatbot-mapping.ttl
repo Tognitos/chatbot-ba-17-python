@@ -1,0 +1,351 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+
+map:Movie
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT t.id AS MOVID, t.title as dbpprop_name
+		FROM title t;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+		rr:class dbp-owl:Film;
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:name;
+		rr:objectMap [rr:column "dbpprop_name"];
+	].
+
+map:Movie_rating
+    # t.kind_id 1 = Movie
+	rr:logicalTable [ rr:sqlQuery """
+        SELECT DISTINCT mii.movie_id as MOVID,
+            mii.info as MOV_INFO,
+            (IF (mii.info_type_id=100,'COUNTER','RATING')) AS MOV_INFO_TYPE
+        FROM movie_info_idx mii
+            LEFT JOIN title t ON mii.movie_id = t.id
+            LEFT JOIN movie_info mi ON mi.movie_id = mii.movie_id AND mi.info_type_id=3
+        WHERE (t.kind_id=1) AND
+              (mii.info_type_id=100 or mii.info_type_id=101) AND
+              (mi.info NOT IN ('Adult','Erotica','Sex'));
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate [rr:template "dbpprop:{MOV_INFO_TYPE}"];
+		rr:objectMap [rr:column "MOV_INFO"];
+	].
+
+
+map:Keyword
+    rr:logicalTable [ rr:sqlQuery """
+		SELECT id AS KID, keyword as dbpprop_name, phonetic_code AS tobedefined_phonetic_code
+		FROM keyword;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/keyword/{KID}";
+		rr:class dbp-owl:projectKeyword;
+	];
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:name;
+	    rr:objectMap [rr:column "dbpprop_name"];
+	].
+
+
+map:Movie_keywords
+	rr:logicalTable [ rr:sqlQuery """
+		select title.id as MOVID, keyword.id as rdfs_keyword
+		from title, keyword, movie_keyword
+		where title.id = movie_keyword.movie_id AND
+		      movie_keyword.keyword_id = keyword.id
+              AND title.id < 5000000;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate rdfs:label;
+		rr:objectMap [
+		    # Way faster than using joins
+		    rr:template "http://data.example.com/keyword/{rdfs_keyword}";
+		]
+	].
+
+
+map:Movie_similar
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT t.id as MOVID, t2.id as REF_MOVID
+		FROM title t
+		        left outer join movie_link ml on (t.id = ml.movie_id)
+                right outer join link_type lt on (ml.link_type_id = lt.id)
+                left outer join title t2 on (ml.linked_movie_id = t2.id)
+                WHERE lt.id = 14
+
+		limit 1000;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:similar;
+		rr:objectMap [
+
+		    # Way faster than using joins
+		    rr:template "http://data.example.com/movie/{REF_MOVID}";
+		]
+	].
+
+
+map:Movie_sameAs
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT t.id as MOVID, t2.id as REF_MOVID
+		FROM title t
+		        left outer join movie_link ml on (t.id = ml.movie_id)
+                right outer join link_type lt on (ml.link_type_id = lt.id)
+                left outer join title t2 on (ml.linked_movie_id = t2.id)
+                WHERE (lt.id = 17 OR lt.id = 13)
+
+		limit 1000;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbp-owl:sameAs;
+		rr:objectMap [
+
+		    # Way faster than using joins
+		    rr:template "http://data.example.com/movie/{REF_MOVID}";
+		]
+	].
+
+map:Movie_basedOn
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT t.id as MOVID, t2.id as REF_MOVID
+		FROM title t
+		        left outer join movie_link ml on (t.id = ml.movie_id)
+                right outer join link_type lt on (ml.link_type_id = lt.id)
+                left outer join title t2 on (ml.linked_movie_id = t2.id)
+                WHERE lt.id = 16 OR lt.id = 3 OR lt.id = 11
+
+		limit 10;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:basedOn;
+		rr:objectMap [
+		    # Way faster than using joins
+		    rr:template "http://data.example.com/movie/{REF_MOVID}";
+		]
+	].
+
+
+map:Movie_follows
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT t.id as MOVID, t2.id as REF_MOVID
+		FROM title t
+		        left outer join movie_link ml on (t.id = ml.movie_id)
+                right outer join link_type lt on (ml.link_type_id = lt.id)
+                left outer join title t2 on (ml.linked_movie_id = t2.id)
+                WHERE lt.id = 1
+
+		limit 10;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:follows;
+		rr:objectMap [
+		    # Way faster than using joins
+		    rr:template "http://data.example.com/movie/{REF_MOVID}";
+		]
+	].
+
+
+map:Movie_references
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT t.id as MOVID, t2.id as REF_MOVID
+		FROM title t
+		        left outer join movie_link ml on (t.id = ml.movie_id)
+                right outer join link_type lt on (ml.link_type_id = lt.id)
+                left outer join title t2 on (ml.linked_movie_id = t2.id)
+                WHERE lt.id = 5 OR lt.id = 9 OR lt.id = 7
+
+		limit 10;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dct:references;
+
+		rr:objectMap [
+		    # Way faster than using joins
+		    rr:template "http://data.example.com/movie/{REF_MOVID}";
+		]
+	].
+
+
+map:Company
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT c.id as COMID, c.name as dbpprop_name, c.country_code as country_code
+		FROM company_name c
+		WHERE c.id < 100;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/company/{COMID}";
+		rr:class dbp-owl:Company;
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:name;
+		rr:objectMap [rr:column "dbpprop_name"];
+	].
+
+
+map:Movie_productionCompany
+    rr:logicalTable [ rr:sqlQuery """
+        SELECT t.id as MOVID, c.id as COMID
+        FROM title t, movie_companies mc, company_name c
+        WHERE t.id = mc.movie_id AND mc.company_id = c.id
+        limit 100;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:productionCompany;
+		rr:objectMap [
+		    # Way faster than using joins
+            rr:template "http://data.example.com/company/{COMID}";
+		]
+	].
+
+
+map:Movie_alternativeTitle
+    rr:logicalTable [ rr:sqlQuery """
+        SELECT t.id as MOVID, aka.title as dbpprop_alternativeTitle
+        FROM title t, aka_title aka
+        WHERE t.id = aka.movie_id
+
+        limit 1000;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:alternativeTitle;
+		rr:objectMap [rr:column "dbpprop_alternativeTitle" ]
+	].
+
+map:Actor
+    # TODO: Join with role_type table and use the role_name for the dbpprop_profession
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT p.id AS PERID, p.name as dbpprop_commonName, p.gender as dbpprop_sex,
+		    (
+		    CASE ci.role_id
+		    WHEN 1 OR 2 THEN 'Actor'
+		    WHEN 3 THEN 'Producer'
+		    WHEN 4 THEN 'Writer'
+		    WHEN 6 THEN 'MusicComposer'
+		    WHEN 8 THEN 'MovieDirector'
+		    ELSE 'Person'
+		    END
+		    ) as OWL_CLASS,
+		    rt.role as dbpprop_profession
+		    FROM name p
+		         left outer join cast_info ci on (p.id = ci.person_id)
+		         left outer join role_type rt on (ci.role_id = rt.id)
+	    WHERE p.id < 5000000;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/person/{PERID}";
+		# rr:class will be added dynamically through rdf:type later
+	];
+
+	# Define the class of this instance
+	rr:predicateObjectMap [
+	    rr:predicate rdf:type;
+	    rr:objectMap [rr:template "dpb-owl:{OWL_CLASS}"];
+	];
+	rr:predicateObjectMap [
+	    rr:predicate dbpprop:profession;
+	    rr:objectMap [rr:column "dbpprop_profession"];
+	];
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:commonName;
+		rr:objectMap [rr:column "dbpprop_commonName"];
+	];
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:sex;
+		rr:objectMap [rr:column "dbpprop_sex"];
+	].
+
+map:Movie_castRoles
+   rr:logicalTable [ rr:sqlQuery """
+        SELECT ci.movie_id as MOVID, p.id as PERID,
+            (
+		    CASE ci.role_id
+		    WHEN 1 OR 2 THEN 'starring'
+		    WHEN 3 THEN 'producer'
+		    WHEN 4 THEN 'writer'
+		    WHEN 5 THEN 'cinematography'
+		    WHEN 6 THEN 'musicComposer'
+		    WHEN 7 THEN 'costumeDesigner'
+		    WHEN 8 THEN 'director'
+		    WHEN 9 THEN 'chiefEditor'
+		    WHEN 10 OR 12 THEN 'alongSide'
+		    WHEN 11 THEN 'setDesigner'
+		    ELSE 'unknown'
+		    END
+		    ) as castRolePredicate
+        FROM cast_info ci
+                left outer join name p on (ci.person_id = p.id)
+        WHERE p.id < 500000;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+	    # predicateMap instead of predicate to insert dynamic predicate names (rr:predicate is a shortcut for constant values)
+		rr:predicateMap [ rr:template "dbpprop:{castRolePredicate}" ];
+		rr:objectMap [
+			rr:template "http://data.example.com/person/{PERID}";
+		]
+	].

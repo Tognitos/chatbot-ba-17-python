@@ -1,0 +1,34 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+
+#TODO add filters for adult and not suitable movies
+map:Movie_starring
+   rr:logicalTable [ rr:sqlQuery """
+        SELECT ci.movie_id as MOVID, p.id as PERID
+        FROM cast_info ci
+             left outer join name p on (ci.person_id = p.id)
+             left outer join title t on (t.id = ci.movie_id)
+        WHERE   t.kind_id = 1 AND
+                (ci.role_id = 1 OR ci.role_id = 2) AND
+                ci.nr_order is not null AND
+                ci.nr_order < 10;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:starring;
+		rr:objectMap [
+			rr:template "http://data.example.com/person/{PERID}";
+		]
+	].

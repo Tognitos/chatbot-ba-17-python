@@ -1,0 +1,27 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+
+map:Company
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT c.id as COMID, c.name as dbpprop_name, c.country_code as country_code
+		FROM company_name c;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/company/{COMID}";
+		rr:class dbp-owl:Company;
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:name;
+		rr:objectMap [rr:column "dbpprop_name"];
+	].
+

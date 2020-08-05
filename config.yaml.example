@@ -1,0 +1,26 @@
+secret_key: 'secret key used for Flask session'
+
+apiai:
+    dev_key: 'DEV_KEY'
+
+rasa:
+    url: 'http://localhost:5050/'
+
+imdb_sparql:
+    url: 'http://srv-lab-t-697:8740/repositories/imdb_repository'
+    #url: 'http://srv-lab-t-697:8746/imdb/query'
+
+imdb:
+    host:   'localhost'
+    user:   'username'
+    passwd: 'password'
+    db:     'imdb'
+
+imdb_sparql:
+    url:    'http://localhost:3030/imdb/query'
+
+logserver:
+    hostname:   'localhost'
+    port:       27017
+    db:         'chatlog'
+    collection: 'messages'

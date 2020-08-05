@@ -1,0 +1,72 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+
+map:Actor
+	rr:logicalTable [ rr:sqlQuery """
+		SELECT p.id AS PERID, SUBSTRING_INDEX(p.name, ", ", 1) AS foaf_familyName, SUBSTRING_INDEX(p.name, ", ", -1) AS foaf_name, p.name as dbpprop_birthName, p.gender as dbpprop_sex,
+		    (
+		    CASE ci.role_id
+		    WHEN 1 THEN 'Actor'
+		    WHEN 2 THEN 'Actor'
+		    WHEN 3 THEN 'Producer'
+		    WHEN 4 THEN 'Writer'
+		    WHEN 6 THEN 'MusicComposer'
+		    WHEN 8 THEN 'MovieDirector'
+		    ELSE 'Person'
+		    END
+		    ) as OWL_CLASS,
+		    rt.role as dbpprop_profession
+		    FROM name p
+		         left outer join cast_info ci on (p.id = ci.person_id)
+		         left outer join role_type rt on (ci.role_id = rt.id)
+                 left outer join title t on (t.id = ci.movie_id)
+            WHERE
+                     t.kind_id = 1
+                 AND ci.nr_order is not null
+                 AND ci.nr_order < 10;
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/person/{PERID}";
+		#rr:class will be added dynamically through rdf:type later
+	];
+
+	# Define the class of this instance
+	rr:predicateObjectMap [
+	    rr:predicate rdf:type;
+	    rr:objectMap [
+	        # Specify that the result is not a literal (e.g. not a string), but an IRI
+	        # (you cannot write dbpprop:{}, but it will do it automatically)
+	        rr:termType rr:IRI;
+	        rr:template "http://dbpedia.org/ontology/{OWL_CLASS}";
+        ];
+	];
+	rr:predicateObjectMap [
+	    rr:predicate dbpprop:profession;
+	    rr:objectMap [rr:column "dbpprop_profession"];
+	];
+	# full name
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:birthName;
+		rr:objectMap [rr:column "dbpprop_birthName"];
+	];
+	rr:predicateObjectMap [
+		rr:predicate foaf:name;
+		rr:objectMap [rr:column "foaf_name"];
+	];
+	rr:predicateObjectMap [
+		rr:predicate foaf:familyName;
+		rr:objectMap [rr:column "foaf_familyName"];
+	];
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:sex;
+		rr:objectMap [rr:column "dbpprop_sex"];
+	].

@@ -1,0 +1,32 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+
+map:Movie_gross
+    # t.kind_id 1 = Movie
+    # info_type_id 107 = Gross
+	rr:logicalTable [ rr:sqlQuery """
+        SELECT DISTINCT 
+            mi.movie_id as MOVID,
+            mi.info as MOV_INFO
+        FROM movie_info mi
+             left outer join title t on (t.id = mi.movie_id)
+        WHERE (t.kind_id=1) AND
+              (mi.info_type_id=107);
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:gross;
+		rr:objectMap [rr:column "MOV_INFO"];
+	].

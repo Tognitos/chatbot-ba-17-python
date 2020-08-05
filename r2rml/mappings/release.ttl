@@ -1,0 +1,45 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+@prefix ns:   <http://example.com/ns#>
+
+map:Release
+
+    # t.kind_id 1 = Movie
+    # info_type_id 16 = release dates (+location)
+    
+	rr:logicalTable [ rr:sqlQuery """
+        SELECT DISTINCT REPLACE(SUBSTRING_INDEX(mi.info, ':', 1), ' ', '_') as MOV_RELEASE_LOC,
+	                    CAST(RIGHT(mi.info,4) AS SIGNED) as MOV_RELEASE_DATE
+        FROM movie_info mi
+	         LEFT JOIN title t ON mi.movie_id = t.id
+        WHERE (t.kind_id=1) AND
+	          (mi.info_type_id=16);
+	""" ];
+
+	rr:subjectMap [
+	    rr:class ns:Release;
+	    rr:template "http://data.example.com/release/{MOV_RELEASE_LOC}_{MOV_RELEASE_DATE}";
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:releaseDate;
+		rr:objectMap [
+		    rr:column "MOV_RELEASE_DATE";
+		    #rr:datatype xsd:short # does not affect anyway
+		    ];
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:releaseLocation;
+		rr:objectMap [
+		    rr:column "MOV_RELEASE_LOC"
+		    ];
+	]
+	.

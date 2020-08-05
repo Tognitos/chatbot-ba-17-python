@@ -1,0 +1,34 @@
+@prefix map: <#>.
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix dc: <http://purl.org/dc/elements/1.1/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+
+@prefix dbpprop: <http://dbpedia.org/property/>.
+@prefix dbp-owl: <http://dbpedia.org/ontology/>.
+
+map:Movie_rating_counter
+    # t.kind_id 1 = Movie
+    # mii.info_type_id=counter
+	rr:logicalTable [ rr:sqlQuery """
+        SELECT DISTINCT mii.movie_id as MOVID,
+            mii.info as MOV_INFO
+        FROM movie_info_idx mii
+            LEFT JOIN title t ON mii.movie_id = t.id
+            LEFT JOIN movie_info mi ON mi.movie_id = mii.movie_id AND mi.info_type_id=3
+        WHERE (t.kind_id=1) AND
+              (mii.info_type_id=100) AND
+              (mi.info NOT IN ('Adult','Erotica','Sex'));
+	""" ];
+
+	rr:subjectMap [
+		rr:template "http://data.example.com/movie/{MOVID}";
+		#rr:class dbp-owl:Film;
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate dbpprop:counter;
+		rr:objectMap [rr:column "MOV_INFO"];
+	].
