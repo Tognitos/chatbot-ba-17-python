@@ -28,6 +28,3 @@ Run the server
 ```
 python server.py
 ```
-
-## Check out the wiki for more information
-https://github.com/panigsan/chatbot-source/wiki
