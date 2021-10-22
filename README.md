@@ -20,6 +20,12 @@ Install the requirements
 pip install -r requirements.txt
 ```
 
+:warning: If you get an error `EnvironmentError: mysql_config not found` with
+the above statement, try
+```
+sudo apt install default-libmysqlclient-dev
+```
+
 Copy the configuration file example and edit the new file
 ```
 cp config.yaml.example config.yaml
